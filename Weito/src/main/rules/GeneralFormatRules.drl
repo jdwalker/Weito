@@ -1,0 +1,210 @@
+#created on: Jan 12, 2012
+package weito
+
+#list any import classes here.
+import pdfbox.ChunkData;
+import pdfbox.FormatStyle;
+
+import featurealgorithm.DocumentStatistics;
+import featurealgorithm.TextMatch;
+import featurealgorithm.Metrics;
+import featurealgorithm.DocumentFeatures;
+
+import java.util.Arrays;
+import java.util.ArrayList;
+
+declare Wrapper 
+	text: String
+	metrics : Metrics
+end
+
+declare TextWrapper extends Wrapper
+	texpos : TextPosition
+end
+
+declare FormatWrapper extends Wrapper
+	format: ChunkData
+end
+
+declare TextPosition
+	type : String
+	subtype: String
+	indexstart : int
+	indexend : int
+	text : String
+	metrics : Metrics
+	discard : boolean;
+end
+
+function void fire(ChunkData data,RuleManger manager) {
+manager.trigger(featurealgorithm.getRule().getName(),data);
+}
+
+query "TitleMaxMetric"
+	accumulate ( Wrapper( $m : metrics.get( "title" ) ) , $max: max( $m ) )
+	Wrapper( $text : text, $max == metrics.get("title") )
+end
+
+query "HeadingMaxMetric"
+	accumulate ( Wrapper( $m : metrics.get( "heading" ) ) , $max: max( $m ) )
+	Wrapper( $text : text, $max == metrics.get("heading") )
+end
+
+rule "Setup" //first rule
+no-loop
+salience 100
+	when
+		eval(true)
+	then
+		Metrics.setMetricnames( java.util.Arrays.asList( new String[] {"title", "heading"} ));
+
+rule "Wrap FormatData"
+no-loop
+	when
+		$p : FormatData($text : text)
+		not FormatWrapper(format == $p)
+	then
+		Metrics m = new Metrics();
+		FormatWrapper x = new FormatWrapper( $text,m,$p );
+		insert( x );
+end
+
+rule "Font is Bold"
+no-loop
+    when
+       FormatWrapper($m : metrics, format.primaryStyle.forceBold)
+       $manager : RuleManager()
+    then
+    	$m.increaseBy("title", 1);
+    	$m.increaseBy("heading", 0);
+    	
+    	$manager.
+end
+
+rule "Font is Italic"
+no-loop
+    when
+       FormatWrapper($m : metrics, format.primaryStyle.italic)
+    then
+    	$m.increaseBy("heading", 0);
+end
+
+
+rule "larger font size than average size"
+no-loop
+	when
+		DocumentStatistics( $avFontSize: averagefontsize )
+		FormatWrapper($m : metrics, $size : format.primaryStyle.fontSizePt > $avFontSize)
+	then
+    	$m.increaseBy("title", $size - $avFontSize);
+    	$m.increaseBy("heading", 0);
+end
+
+rule "Small caps or Large caps"
+no-loop
+	when
+		FormatWrapper($m : metrics, format.primaryStyle.allCap || format.primaryStyle.smallCap)
+	then
+		$m.increaseBy("title",0);
+end
+
+rule "Text a minimum length"
+no-loop
+	when
+		FormatWrapper($m : metrics, format.text.length() > 10)
+	then
+		$m.increaseBy("title", 1);
+    	$m.increaseBy("heading", 1);
+end
+
+rule "Heading pattern for ordered letters (A,B,C..)"
+no-loop
+	when
+		DocumentStatistics($t : fulltext)
+		$tm : TextMatch() from TextMatch.match("^[A-Z](\\.|:|\\)).+$", $t);
+	then
+		Metrics m = new Metrics();
+		m.put("heading",3.0);
+		insert( new TextPosition("heading", "letters", $tm.getIndexStart(),$tm.getIndexEnd(), $tm.getText(), m, false ) );
+end
+
+rule "Heading pattern for roman numerals (I, II..)"
+no-loop
+	when
+		DocumentStatistics($t : fulltext)
+		$tm : TextMatch() from TextMatch.match("^[IVX]+(\\.|:|\\)).+$", $t);
+	then
+		Metrics m = new Metrics();
+		m.put("heading",3.0);
+		insert( new TextPosition("heading", "roman", $tm.getIndexStart(),$tm.getIndexEnd(), $tm.getText(), m, false ) );
+end
+
+rule "Heading pattern for ordered numbers (1,2,3)"
+no-loop
+	when
+		DocumentStatistics($t : fulltext)
+		$tm : TextMatch() from TextMatch.match("^[0-9]{1,2}(\\.|:|\\)).+$", $t);
+	then
+		Metrics m = new Metrics();
+		m.put("heading",3.0);
+		insert( new TextPosition("heading", "numbers", $tm.getIndexStart(),$tm.getIndexEnd(), $tm.getText(), m, false ) );
+end
+
+rule "Headings not adjacent" //before the below wrapping, makes sure the headings with the same subtype are not right next to each other
+no-loop
+	when
+		$doc: DocumentStatistics()
+		$a : TextPosition(type.equals("heading"),$AstartIndex : indexstart)
+		TextPosition(type.equals($a.type), subtype.equals($a.subtype), this != $a, $BstartIndex : indexstart )
+		eval( Math.abs( $doc.getLineIndex( $AstartIndex ) - $doc.getLineIndex( $BstartIndex )  ) <= 3 ) //difference between lines one or less
+	then
+		$a.setDiscard(true);
+end
+		
+
+rule "If no existing wrapper make one"
+no-loop
+salience -50
+	when
+	   $tp : TextPosition($textStart : indexstart, $textEnd : indexend, $text : text, $metrics : Metrics, !discard)
+	   FormatWrapper($formatStart: format.startPos, $formatEnd: format.endPos)
+	   eval($textStart >= $formatStart || $textEnd >= $formatStart) //Check for overlap
+	   eval($formatStart >= $textStart || $formatEnd >= $textStart)
+	   not TextWrapper(texpos == $tp)
+	then
+		TextWrapper tw = new TextWrapper($text,$metrics,$tp);
+		insert(tw);				
+end
+
+rule "Add format metrics to existing wrapper"
+no-loop
+salience -100 //fire penultimately after format rules
+	when
+	   $tp : TextPosition($textStart : indexstart, $textEnd : indexend)
+	   $fw : FormatWrapper($formatStart: format.startPos, $formatEnd: format.endPos,$formatMetrics : metrics)
+	   eval($textStart >= $formatStart || $textEnd >= $formatStart) //Check for overlap
+	   eval($formatStart >= $textStart || $formatEnd >= $textStart)
+	   $tw : TextWrapper(texpos == $tp, $textMetrics : metrics)
+	then
+		double textLength = $textEnd - $textStart; // actually the length -1, but the ratios work out in the end
+		double formatLength = $formatEnd - $formatStart; // ditto
+		double overlap = (textLength + formatLength - Math.abs($textStart - MetricHoldertStart) - Math.abs($textEnd - $formatEnd)) / 2; // overlap amount
+		double ratioOverlap = overlap / textLength;
+		//Ratio now calculated, find multiply format metric and add to normal Metric
+		Metrics textMetrics = $formatMetrics.multiplyBy( ratioOverlap ).addMetrics( $textMetrics );			 		
+		$tw.setMetrics(textMetrics);
+end
+
+rule "RoundMetrics"
+no-loop
+salience -150 //fire at very last
+	when
+		$w : Wrapper($m : Metrics)
+	then
+		$w.setMetrics( $m.round() );
+end
+
+
+
+	
+		

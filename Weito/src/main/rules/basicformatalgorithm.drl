@@ -1,0 +1,213 @@
+#created on: Feb 22, 2012
+package drools
+
+#list any import classes here.
+import pdfbox.ITextData;
+import pdfbox.IFormatData;
+import pdfbox.FormatStyle;
+import pdfbox.TextMatch;
+
+import java.util.Set;
+import java.util.HashSet;
+import java.util.AbstractList;
+import java.util.ArrayList
+
+#declare any global variables here
+global AbstractList keywords
+global DocumentStatistics stats
+
+declare Wrapper
+textdata : ITextData @key
+end
+
+declare StyledWrapper extends Wrapper
+style : FormatStyle
+end
+
+declare StyledOriginalWrapper extends StyledWrapper
+end
+
+declare RuleInfo
+name : String @key
+data : AbstractList
+end
+
+declare MatchInfo
+type : String
+subtype: String
+end
+
+declare Exclude
+feature : Feature
+end
+
+declare Feature
+name : String @key
+textdata : TextData @key
+wrapper : Wrapper
+priority : Integer @key
+end
+
+declare Features
+name: String @key
+list: AbstractList @key
+priority : Integer
+end
+
+declare FeaturesPriorityTracker
+name : String @key
+maxpriority: Integer @key
+currpriority : Integer @key
+end
+
+query "Results"
+$feature : DocumentFeatureResult()
+end
+
+function List<StyledWrapper> makeMatchStyledWrapper(List originalWrappers, List textdatas) {
+	List<StyledWrapper> results = new ArrayList<StyledWrapper>();
+	for(Object o : textdatas) {
+		Wrapper w = new Wrapper( (ITextData) o );
+		StyledOriginalWrapper maxWrapper = null;
+		double overlapRatio = 0;
+		for(Object o : originalWrappers) {
+			StyledOriginalWrapper ow = (StyledOriginalWrapper) o;
+			if ( doWrappersOverlap(w,ow) ) {
+				double newOverlapRatio = OverlapRatio(w,ow);
+				if(newOverlapRatio > overlapRatio) {
+				maxWrapper = ow;
+				overlapRatio = newOverlapRatio;
+				}
+			}
+		}
+		results.add( new StyledWrapper(textdata, maxWrapper.getStyle() ) );
+	}
+	return results;
+}
+
+function boolean doWrappersOverlap(Wrapper firstwrapper, Wrapper secondwrapper) {
+	TextData firstTextData = firstwrapper.getTextdata();
+	TextData secondTextData = secondwrapper.getTextdata();
+	
+	int firstTextStart = firstTextData.getStartpos();
+	int firstTextEnd = firstTextData.getEndpos();
+	
+	int secondTextStart = secondTextData.getStartpos();
+	int secondTextEnd = secondTextData.getEndpos();
+	
+	return (firstTextStart >= secondTextStart || firstTextEnd >= secondTextStart) && (secondTextStart >= firstTextStart || secondTextEnd >= firstTextStart);
+}
+
+function Double OverlapRatio(Wrapper mainWrapper, Wrapper overlappingWrapper) {
+	TextData mainTextData = mainWrapper.getTextdata();
+	TextData overlappingTextData = overlappingWrapper.getTextdata();
+	
+	Double mainTextStart = new Double( mainTextData.getStartpos() );
+	Double mainTextEnd = new Double( mainTextData.getEndpos() );
+	
+	Double overlappingTextStart = new Double( overlappingTextData.getStartpos() );
+	Double overlappingTextEnd = new Double( overlappingTextData.getEndpos() );
+	
+	Double mainLength = mainTextEnd - mainTextStart; // actually the length -1, but the ratios work out in the end
+	Double overlappingLength = overlappingTextEnd - overlappingTextStart; // ditto
+	Double overlap = (mainLength + overlappingLength - Math.abs(mainTextStart - overlappingTextStart) - Math.abs(mainTextEnd - overlappingTextEnd)) / 2; // overlap amount
+	Double ratioOverlap = overlap / mainLength;
+	return ratioOverlap;
+}
+
+
+function TextData createTextDataFromFullText(Number $startpos, Number $endpos, DocumentStatistics stats) {
+	int startpos = clampValuestoFullText( $startpos.intValue(), stats );
+	int endpos = clampValuestoFullText( $endpos.intValue(), stats);
+	String text = stats.getFulltext().substring(startpos,endpos);
+	return new TextData(text, startpos, endpos);
+}
+
+function int clampValuestoFullText(int value, DocumentStatistics stats) {
+		int result = value;
+		if( result > (stats.getFulltext().length() - 1) ) result = stats.getFulltext().length() - 1;
+		if(result < 0) result = 0;
+		return result;
+}
+
+function TextData createTextData(TextDataMatcher matcher) {
+	return new TextData( matcher.getText(), matcher.getStartpos(), matcher.getEndpos() );
+}
+
+rule "Wrap Format Data"
+ruleflow-group "genFormat"
+	when
+		$cd : IFormatData($text : text, $sp : startpos, $ep : endpos)
+		not Wrapper(textdata.text == $text )
+	then
+		TextData td = new TextData( $text, $sp, $ep );
+		StyledOriginalWrapper x = new StyledOriginalWrapper( td, new HashSet<RuleInfo>(), $cd.getPrimarystyle() );
+		insert( x );
+end
+
+rule "Exclusion of Features"
+ruleflow-group "excludeFeatures"
+	when
+		$e : Exclude($f: feature )
+	then
+		retract($f);
+		retract($e);
+end
+
+rule "setup new Features"
+ruleflow-group "collectFeatures"
+	when
+		Feature($name : name, $td : textdata, $priority : priority)
+		not Features( name.equals($name), priority == $priority )
+	then
+		insert( new Features($name, new ArrayList<TextData>(), $priority) );
+end
+
+rule "add new Features"
+ruleflow-group "collectFeatures"
+	when
+		$f : Feature($name : name, $td : textdata, $priority : priority)
+		$fs : Features( $list : list not contains $td, name.equals($name), priority == $priority )
+	then
+		$list.add($td);
+		modify($fs) {
+		setList($list);
+		}
+end
+
+rule "define Rule Trackers"
+ruleflow-group "produceResults"
+	when
+		Features( $name : name )
+		not FeaturesPriorityTracker( name.equals($name) )
+		accumulate(Features( name.equals($name), $p : priority ), $maxp : max( $p ), $minp : min($p) )
+	then
+		insert( new FeaturesPriorityTracker($name,$maxp.intValue(),$minp.intValue()) );
+		System.out.println($name + " " + $maxp + " " + $minp);
+end
+
+rule "Increment Rule Trackers"
+ruleflow-group "produceResults"
+	when
+		$ft : FeaturesPriorityTracker( $name : name, $priority : currpriority, currpriority <= maxpriority )
+		not Features(name == $name, priority == $priority ) or Features( list.Empty )
+	then
+		modify ($ft) {
+		setCurrpriority($priority + 1);
+		}
+		
+end
+
+rule "Prepare Results"
+ruleflow-group "produceResults"
+	when
+		$fpt : FeaturesPriorityTracker( $name : name, $priority : currpriority, currpriority <= maxpriority )
+		$fs : Features( name == $name, $list : list, priority == $priority, list.Empty == false )
+	then
+		AbstractList features = new ArrayList();
+		for(Object o : $list) {
+			TextData td = (TextData) o;
+			features.add( td.getText() );
+		}
+		insert( new DocumentFeatureResult( $name, features ) );
+end

@@ -1,0 +1,316 @@
+#created on: Jan 12, 2012
+package featurealgorithm
+
+#list any import classes here.
+import pdfbox.ChunkData;
+import pdfbox.FormatStyle;
+import pdfbox.TextData;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Queue;
+
+declare Wrapper 
+	textdata : TextData
+	triggeredrules : Set
+end
+
+declare FormatWrapper extends Wrapper
+	format: ChunkData
+end
+
+declare TextWrapper extends Wrapper
+	type : String
+	subtype: String
+end
+
+declare DocumentFeature
+	uniqueid : String
+	metrics : Queue
+	rulelist : Map
+end
+
+declare RulesInfo
+	rulename : String @key
+	param1 : int
+	param2 : int
+	param3 : int
+end
+
+declare MetricWrapperHolder extends MetricHolder
+	wrapper: Wrapper
+end
+
+declare DiscardWrapper
+	wrapper : Wrapper
+end
+
+declare MetricCalculated
+	mwh : MetricWrapperHolder
+	rulesinfo: RulesInfo
+end
+
+declare TextCombined
+	tmh : MetricWrapperHolder
+	fmh : MetricWrapperHolder
+end
+
+query "results"
+	$documentfeatureresults : DocumentFeatureResult()
+end
+
+rule "Wrap FormatData"
+no-loop
+	when
+		$p : ChunkData()
+		$td : TextData( this == $p, $text : text, $sp : startpos, $ep : endpos)
+		not FormatWrapper(format == $p)
+	then
+		FormatWrapper x = new FormatWrapper( $td, new HashSet<RulesInfo>(), $p );
+		insert( x );
+end
+
+rule "Font is Bold"
+no-loop
+ruleflow-group "formatrules"
+    when
+    	$fw : FormatWrapper(format.primarystyle.forceBold, $tr : triggeredrules)
+    then
+    	RulesInfo ri = new RulesInfo( featurealgorithm.getRule().getName() );
+    	insert( ri );
+    	$tr.add( ri );
+    	modify ($fw) {
+    		setTriggeredrules( $tr );
+    	}
+end
+
+/*
+rule "Font is Italic"
+no-loop
+    when
+       FormatWrapper($m : metrics, format.primaryStyle.italic)
+    then
+    	$m.increaseBy("heading", 0);
+end
+
+
+rule "larger font size than average size"
+no-loop
+	when
+		DocumentStatistics( $avFontSize: averagefontsize )
+		FormatWrapper($m : metrics, $size : format.primaryStyle.fontSizePt > $avFontSize)
+	then
+    	$m.increaseBy("title", $size - $avFontSize);
+    	$m.increaseBy("heading", 0);
+end
+
+rule "Small caps or Large caps"
+no-loop
+	when
+		FormatWrapper($m : metrics, format.primaryStyle.allCap || format.primaryStyle.smallCap)
+	then
+		$m.increaseBy("title",0);
+end
+
+rule "Text a minimum length"
+no-loop
+	when
+		FormatWrapper($m : metrics, format.text.length() > 10)
+	then
+		$m.increaseBy("title", 1);
+    	$m.increaseBy("heading", 1);
+end
+*/
+
+rule "Heading pattern for ordered letters (A,B,C..)"
+no-loop
+ruleflow-group "textmatch"
+	when
+		DocumentStatistics($t : fulltext)
+		$td : TextData() from TextMatch.match("^[A-Z](\\.|:|\\)).+$", $t)
+		not TextData(this == $td)
+	then
+		//m.put("heading",3.0);
+		insert($tm);
+		String type = "heading";
+		String subtype = "letters";
+		Set<RulesInfo> ruleslist = new HashSet<RulesInfo>();
+		RulesInfo ri = new RulesInfo( featurealgorithm.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( $td, ruleslist, false, type, subtype ) );
+end
+/*
+rule "Heading pattern for roman numerals (I, II..)"
+no-loop
+	when
+		DocumentStatistics($t : fulltext)
+		$tm : TextMatch() from TextMatch.match("^[IVX]+(\\.|:|\\)).+$", $t);
+	then
+		Metrics m = new Metrics();
+		m.put("heading",3.0);
+		insert( new TextPosition("heading", "roman", $tm.getIndexStart(),$tm.getIndexEnd(), $tm.getText(), m, false ) );
+end
+
+rule "Heading pattern for ordered numbers (1,2,3)"
+no-loop
+	when
+		DocumentStatistics($t : fulltext)
+		$tm : TextMatch() from TextMatch.match("^[0-9]{1,2}(\\.|:|\\)).+$", $t);
+	then
+		Metrics m = new Metrics();
+		m.put("heading",3.0);
+		insert( new TextPosition("heading", "numbers", $tm.getIndexStart(),$tm.getIndexEnd(), $tm.getText(), m, false ) );
+end
+*/
+
+rule "Headings not adjacent" //before the below wrapping, makes sure the headings with the same subtype are not right next to each other
+ruleflow-group "textmatch"
+	when
+		$doc: DocumentStatistics()
+		$a : TextWrapper(type.equals("heading"),$AstartIndex : indexstart)
+		not DiscardWrapper(wrapper == $a);		
+		TextWrapper(type.equals($a.type), subtype.equals($a.subtype), this != $a, $BstartIndex : indexstart )
+		eval( Math.abs( $doc.getLineIndex( $AstartIndex ) - $doc.getLineIndex( $BstartIndex )  ) <= 3 ) //difference between lines one or less
+	then
+		insert ( new DiscardWrapper($a) );
+end
+
+rule "Retract discarded wrappers"
+ruleflow-group "discard"
+	when
+		$dw : DiscardWrapper($w : wrapper)
+	then
+		retract($w);
+		retract($dw);
+end
+	
+rule "Generate Metrics, default - increase Metric"
+ruleflow-group "genmetrics"
+agenda-group "genmetrics"
+salience -10
+	when
+		$fw : Wrapper(triggeredrules contains $ri : RulesInfo( $rulename : rulename) )
+		$df : DocumentFeature(rulelist.keySet contains $rulename, $rulelist : rulelist)
+		$mh : MetricWrapperHolder(wrapper == $fw)
+		not MetricCalculated(mwh == $mh, rulesinfo == $ri)
+		
+	then
+		double increment = (Double) $rulelist.get( $rulename ) + $mh.getMetric();		
+		modify( $mh ) { setMetric( increment ); }
+		insert( new MetricCalculated($mh,$ri) );
+end
+
+rule "Generate Metrics, default - make new Metric"
+ruleflow-group "genmetrics"
+agenda-group "genmetrics"
+salience -10
+	when
+		$w : Wrapper(triggeredrules contains $ri : RulesInfo( $rulename : rulename) ) 
+		$df : DocumentFeature(rulelist.keySet contains $rulename, $rulelist : rulelist)
+		not MetricWrapperHolder($w)
+		not MetricCalculated(mwh == $mh, rulesinfo == $ri);		
+		)
+	then
+		double amount = (Double) $rulelist.get( $rulename );
+		MetricWrapperHolder mh = new MetricWrapperHolder ( amount,$w,$df );
+		insert(mh);
+		$metrics.add( mh );
+		modify( $df ) { setMetrics( $metrics ); }
+		insert( new MetricCalculated($mh,$ri) );
+end
+
+   
+
+
+rule "Add format metrics to text metrics - make new metric"
+ruleflow-group "combine"
+no-loop
+	when
+		$fmh : MetricWrapperHolder(wrapper == FormatWrapper($formatStart: format.startpos, $formatEnd: format.endpos))
+		$tmh : MetricWrapperHolder(wrapper == TextWrapper( $textStart : indexstart, $textEnd : indexend ) )
+		not TextCombined(fmh == $fmh, tmh == $tmh )
+		eval($textStart >= $formatStart || $textEnd >= $formatStart) //Check for overlap
+		eval($formatStart >= $textStart || $formatEnd >= $textStart)
+   		$df : DocumentFeature(metrics contains $fmh,metrics contains $tmh, $metrics : metrics)
+	then
+		double textLength = $textEnd - $textStart; // actually the length -1, but the ratios work out in the end
+		double formatLength = $formatEnd - $formatStart; // ditto
+		double overlap = (textLength + formatLength - Math.abs($textStart - $formatStart) - Math.abs($textEnd - $formatEnd)) / 2; // overlap amount
+		double ratioOverlap = overlap / textLength;
+		
+		//Ratio now calculated, multiply $fw metric by ratio
+		double result = ( $fmh.getMetric() * ratioOverlap ) + $tmh.getMetric();
+		modify($tmh) { setMetric( result ); }
+		insert( new TextCombined($tmh,$fmh) );	
+end
+
+rule "Add format metrics to text metrics - combine existing metric"
+ruleflow-group "combine"
+no-loop
+	when
+		$fmh : MetricWrapperHolder(wrapper == $fw : FormatWrapper($formatStart: format.startpos, $formatEnd: format.endpos))
+		$tmh : MetricWrapperHolder(wrapper == TextWrapper( $textStart : indexstart, $textEnd : indexend ) )
+		not TextCombined(fmh == $fmh, tmh == $tmh )
+		eval($textStart >= $formatStart || $textEnd >= $formatStart) //Check for overlap
+		eval($formatStart >= $textStart || $formatEnd >= $textStart)
+   		$df : DocumentFeature(metrics contains $fmh, $metrics : metrics)
+   		forall (
+			$mwh : MetricWrapperHolder(wrapper == $fw)
+			DocumentFeature( this == $df,metrics not contains $mwh )
+		)
+	then
+		double textLength = $textEnd - $textStart; // actually the length -1, but the ratios work out in the end
+		double formatLength = $formatEnd - $formatStart; // ditto
+		double overlap = (textLength + formatLength - Math.abs($textStart - $formatStart) - Math.abs($textEnd - $formatEnd)) / 2; // overlap amount
+		double ratioOverlap = overlap / textLength;
+		
+		//Ratio now calculated, multiply $fw metric by ratio
+		double result = ( $fmh.getMetric() * ratioOverlap );
+		$metrics.add(tmh);
+		modify($df) { setMetric( $metrics ) };
+end
+
+
+
+rule "RoundMetrics"
+ruleflow-group "round"
+no-loop
+	when
+		$df : DocumentFeature( $metrics : metrics )
+	then
+		for ( Object wrapper : $metrics.keySet() ) {
+			 $metrics.put( wrapper, new Double( Math.round( (Double) $metrics.get( wrapper ) ) ) );		
+		}
+		
+		modify($df) {
+		setMetrics($metrics);
+		}
+end
+
+rule "Get the top x results"
+ruleflow-group "generateresults"
+	when
+		$rulename : String() from featurealgorithm.getRule().getName()
+		$df : DocumentFeature(rulelist.keySet contains $rulename, $metrics : metrics, $rulelist : rulelist)
+	then
+		int x = (Integer) $rulelist.get($rulename );
+		for( Map.Entry e : $metrics.entrySet() ) {
+			Wrapper w = (Wrapper) o;
+			for( Wrapper r : results ) {
+				
+			}
+		}
+		
+end
+
+
+
+
+
+
+	
+		

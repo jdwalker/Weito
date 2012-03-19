@@ -1,0 +1,124 @@
+#created on: Feb 8, 2012
+template header
+thesalience
+title
+heading
+abstract
+introduction
+conclusion
+reference
+fulltext
+category
+
+package weito
+
+#list any import classes here.
+import featurealgorithm.DocumentFeatures
+import weito.OutputPaper
+import weito.PaperTypes
+
+import java.util.List;
+
+
+#declare any global variables here
+global List<String> keywords;
+
+declare DocumentTestResults
+	docfeatures : DocumentFeatures
+	titles : int
+	headings : int
+	abstracts : int;
+	introductions : int
+	conclusions : int
+	references : int
+	fulltext : int
+end
+
+function boolean isValid(String cellPattern, int inputValue) {
+	if( cellPattern.equals("") ) {
+	
+// if pattern is blank return true
+		return true;
+		
+	} else if( cellPattern.equals("0") ) {
+//if pattern is 0, return true if inputValue is zero	
+		return (inputValue == 0);
+		
+	} else {
+//if pattern equals a number, return if value is greater than or equal to this.
+		try {
+			return ( inputValue >= Integer.parseInt(cellPattern) );
+		} catch (Exception e) {
+			return false;
+		}
+	}
+}
+
+function int getSalience(String s) {
+	try {
+		return Integer.parseInt(s);
+	} catch (Exception e) {
+	return 0;
+	}
+}
+
+rule "Matching Tests"
+	when
+		$d : DocumentFeatures($t : titles, $h : headings,
+			$a : abstracts, $i : introductions, $c : conclusions,
+			$r : references, $f : fulltext)
+		not DocumentTestResults(docfeatures == $d)
+	then
+		DocumentTestResults d = new DocumentTestResults(
+		$d,
+		DocumentFeatures.existsMatch(keywords, $t),
+		DocumentFeatures.existsMatch(keywords, $h),
+		DocumentFeatures.existsMatch(keywords, $a),
+		DocumentFeatures.existsMatch(keywords, $i),
+		DocumentFeatures.existsMatch(keywords, $c),
+		DocumentFeatures.existsMatch(keywords, $r),
+		DocumentFeatures.existsMatch(keywords, $f));
+		insert(d);
+end
+
+template "MatchTests"
+
+rule "Match Rule Row_@{row.rowNumber}"
+salience ( getSalience("@{thesalience}")  )
+	when
+		$d : DocumentTestResults($t : titles,
+									$h : headings,
+									$a : abstracts,
+									$i : introductions,
+									$c : conclusions,
+									$r : references,
+									$f : fulltext,
+									$l : docfeatures.fileloc,
+									$dt : docfeatures.titles)
+		not OutputPaper($l == paperfilelocation)
+		eval( !"@{category}".equals("") )
+		eval( isValid( "@{title}", $t ) )
+		eval( isValid( "@{heading}", $h ) )
+		eval( isValid( "@{abstract}", $a ) )
+		eval( isValid( "@{introduction}", $i ) )
+		eval( isValid( "@{conclusion}", $c ) )
+		eval( isValid( "@{reference}", $r ) )
+		eval( isValid( "@{fulltext}", $f ) )
+		
+	then
+		String title = "No title found";
+		if( !$dt.isEmpty() ) {
+		title = (String) $dt.get(0);
+		}
+		PaperTypes type = PaperTypes.BORDERLINE;
+		String cellType = "@{category}";
+		if( cellType.equals("LIKELY") ) {
+		type = PaperTypes.LIKELY;
+		} else if( cellType.equals("UNLIKELY") ) {
+		type = PaperTypes.UNLIKELY;
+		}
+		OutputPaper o = new OutputPaper(title,$l, type);
+		insert(o);
+end
+
+end template

@@ -1,0 +1,19 @@
+#created on: Mar 2, 2012
+package drools
+
+#list any import classes here.
+import java.util.List
+
+
+#declare any global variables here
+global List keywords
+global DocumentStatistics stats
+
+rule "Tabulate"
+ruleflow-group "enumerate"
+    when
+        #conditions
+    then
+        #actions
+
+end

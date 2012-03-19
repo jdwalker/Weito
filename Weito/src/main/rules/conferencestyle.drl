@@ -1,0 +1,307 @@
+#created on: Feb 23, 2012
+#Style based on Agile Conference 2005
+package drools
+
+global AbstractList keywords
+global DocumentStatistics stats
+/*
+rule "Heading pattern for ordered letters (A,B,C..)"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("^[A-Z](\\.|:|\\)).+$", stats.fulltext)
+		$sw : StyledWrapper() or StyledWrapper()
+		//or TextMatch($text : text, $startpos : startpos, $endpos : endpos) from TextMatch.match("^[A-Z](\\.|:|\\)).+$", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "heading";
+		String subtype = "letters";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+
+rule "Heading pattern for ordered numbers (1,2,3...)"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("^[0-9]{1,2}(\\.|:|\\)).+$", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "heading";
+		String subtype = "numbers";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+
+rule "Heading pattern for roman numerals (I,II,III...)"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("^[IVX]+(\\.|:|\\)).+$", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "heading";
+		String subtype = "roman";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+
+rule "References pattern"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("(?s).*R(?i)eferences.*", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "references";
+		String subtype = "";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+
+rule "Conclusion pattern"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("(?s).*(C|S)(?i)(ummary|onclusion).*", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "references";
+		String subtype = "";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+
+rule "Abstract text pattern"
+no-loop
+ruleflow-group "genMatch"
+	when
+		$tm : TextMatch( $text : text, $startpos : startpos, $endpos : endpos ) from TextMatch.match("(?s).*A(?i)bstract.*", stats.fulltext )
+		not TextDataMatcher( match == $tm )
+	then
+		insert( $tm );
+		TextDataMatcher tdm = new TextDataMatcher( $text, $startpos, $endpos, $tm );
+		insert( tdm);
+		String type = "abstract";
+		String subtype = "";
+		Set<RuleInfo> ruleslist = new HashSet<RuleInfo>();
+		RuleInfo ri = new RuleInfo( drools.getRule().getName() );
+    	insert( ri );
+    	ruleslist.add( ri );
+		insert( new TextWrapper( tdm, ruleslist, new MatchInfo(type, subtype) ) );
+end
+*/
+
+
+rule "Title Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw : StyledWrapper(style.fontSizePt == 13 && textdata.text.length > 20)
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 0) );
+end
+
+rule "Title Feature 1"
+ruleflow-group "genFeature"
+
+no-loop
+	when
+		$sw : StyledWrapper(textdata.startpos == 0)
+		not Feature( name == "title", priority == 1 )
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 1 ) );
+end
+
+/*
+rule "Publication Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw: StyledWrapper($txt : textdata.text, style.fontSizePt == 7, textdata.text.length > 70 )
+		//StyledWrapper(this != $sw, textdata.text.equals($txt) )
+	then
+	insert( new Feature( "pubname",$sw.getTextdata(), $sw, 0 ) );
+end
+*/
+
+rule "Heading Feature"
+ruleflow-group "genFeature"
+no-loop
+	when	
+		$l : List() from collect( StyledOriginalWrapper() )
+		$sw : StyledWrapper(  style.fontSizePt in (11.0) || (style.fontSizePt in (7.0) && style.Bold) )
+				or StyledWrapper() from makeMatchStyledWrapper( $l, TextMatch.match("^[A-Z](\\.|:|\\)).+$", stats.fulltext)
+														.orMatch("^[0-9]{1,2}(\\.|:|\\)).+$")
+														.orMatch("^[IVX]+(\\.|:|\\)).+$")
+														.orMatch("(?s).*A(?i)bstract.*")
+														.orMatch("(?s).*R(?i)eferences.*")
+														.orMatch("(?s).*(C|S)(?i)(ummary|onclusion).*")
+														.orMatch("I(?i)ntroduction")
+														.getResults()													
+								)
+	then
+		insert( new Feature( "heading",$sw.getTextdata(), $sw, 0) );		
+end
+
+rule "Headings not adjacent"
+ruleflow-group "genFeature"
+	when
+		$f : Feature( name.equals("heading"), $AstartIndex : textdata.startpos )
+		not Exclude($f == feature);		
+		Feature( name.equals("heading"), this != $f, $BstartIndex : textdata.startpos )
+		eval( Math.abs( stats.getLineIndex( $AstartIndex ) - stats.getLineIndex( $BstartIndex )  ) <= 3 ) //difference between lines one or less
+	then
+		insert ( new Exclude($f) );
+end
+
+rule "Abstract feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		$introf : Feature(textdata.text matches ".*(?i:abstract).*", $startpos : textdata.endpos)
+		$endpos : Double() from accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), min ($sp) )
+		not Feature(name == "abstract", priority == 0)
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos,stats);
+		insert( featuretd);
+		insert( new Feature( "abstract",featuretd, 0) );
+end
+
+rule "Abstract feature 1"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "abstract", priority == 1)
+		$sw : StyledWrapper( style.italic, textdata.text.length > 150 )
+	then	
+		insert( new Feature( "abstract",$sw.getTextdata(), $sw, 1 ) );
+end
+
+rule "Introduction feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 0)
+		$f : Feature( $startpos : textdata.endpos, textdata.text matches "(?s).*troduction.*")
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 0) );
+end
+
+rule "Introduction feature 1 - with abstract"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 1)
+		$fa : Feature( name == "abstract")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fa.textdata.text), $startpos : min ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 1) );
+end
+
+rule "Introduction feature 2 - without abstract"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 2)
+		not Feature( name == "abstract")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : min ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 2) );
+end
+
+rule "Conclusion feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "conclusion")
+		$introf : Feature(textdata.text matches ".*(C|S)(?i)(ummary|onclusion).*", $startpos : textdata.endpos)
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 0) );
+end
+
+rule "Conclusion feature 1 - with references"
+ruleflow-group "genMetaFeature"
+no-loop
+	no-loop
+	when
+		not Feature(name == "conclusion", priority == 1)
+		$fr : Feature( name == "references")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fr.textdata.text), $startpos : max ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : max ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 1) );
+end
+
+rule "Conclusion feature 2 - without references"
+ruleflow-group "genMetaFeature"
+no-loop
+	no-loop
+	when
+		not Feature(name == "conclusion", priority == 2)
+		not Feature( name == "references")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : max ($ep) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, stats.getFulltext().length() - 1, stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 2) );
+end
+
+rule "References feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "references")
+		$introf : Feature(textdata.text matches "(?s).*(?i)references.*", $startpos : textdata.endpos)
+	then		
+		int endpos = stats.getFulltext().length() - 1;
+		TextData featuretd = createTextDataFromFullText( (Number) $startpos, (Number) endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "references",featuretd, 1) );
+end

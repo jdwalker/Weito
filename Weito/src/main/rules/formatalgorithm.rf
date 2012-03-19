@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<process xmlns="http://drools.org/drools-5.0/process"
+         xmlns:xs="http://www.w3.org/2001/XMLSchema-instance"
+         xs:schemaLocation="http://drools.org/drools-5.0/process drools-processes-5.0.xsd"
+         type="RuleFlow" name="featurealgorithm" id="featurealgorithm" package-name="drools" >
+
+  <header>
+  </header>
+
+  <nodes>
+    <start id="1" name="Start" x="114" y="16" width="48" height="48" />
+    <ruleSet id="2" name="Generate Format wrappers" x="41" y="96" width="195" height="56" ruleFlowGroup="genFormat" />
+    <ruleSet id="8" name="Generate Features" x="60" y="184" width="156" height="50" ruleFlowGroup="genFeature" />
+    <ruleSet id="9" name="Generate Features from Features" x="26" y="346" width="224" height="49" ruleFlowGroup="genMetaFeature" />
+    <end id="10" name="End" x="114" y="667" width="48" height="48" />
+    <ruleSet id="11" name="Exclude certain Features" x="26" y="427" width="225" height="57" ruleFlowGroup="excludeFeatures" />
+    <ruleSet id="12" name="Produce Feature Results" x="29" y="596" width="219" height="39" ruleFlowGroup="produceResults" />
+    <ruleSet id="13" name="Collect each Feature into Feature Collections" x="16" y="516" width="245" height="48" ruleFlowGroup="collectFeatures" />
+    <ruleSet id="14" name="Exclude certain Features" x="28" y="266" width="220" height="48" ruleFlowGroup="exclude Features" />
+  </nodes>
+
+  <connections>
+    <connection from="1" to="2" />
+    <connection from="2" to="8" />
+    <connection from="14" to="9" />
+    <connection from="12" to="10" />
+    <connection from="9" to="11" />
+    <connection from="13" to="12" />
+    <connection from="11" to="13" />
+    <connection from="8" to="14" />
+  </connections>
+
+</process>

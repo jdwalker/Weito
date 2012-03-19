@@ -1,0 +1,86 @@
+#created on: Mar 7, 2012
+package drools
+
+import debug.Printer;
+
+rule "genFormat test"
+ruleflow-group "genFormat"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " General Format Stage Entered" );
+end
+
+rule "genMatch test"
+ruleflow-group "genMatch"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " General Match Stage Entered" );
+end
+
+rule "excludeWrappers test"
+ruleflow-group "excludeWrappers"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " excludeWrappers Stage Entered" );
+end
+
+rule "formatToText test"
+ruleflow-group "formatToText"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " formatToText Stage Entered" );
+end
+
+rule "genFeature test"
+ruleflow-group "genFeature"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " genFeature Stage Entered" );
+end
+
+rule "genMetaFeature test"
+ruleflow-group "genMetaFeature"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " General Meta Feature Stage Entered" );
+end
+
+rule "Collect Features test"
+ruleflow-group "collectFeatures"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " Collect Features Stage Entered" );
+end
+
+
+rule "produceResults test"
+ruleflow-group "produceResults"
+salience 1000
+no-loop
+	when
+		eval(true)
+	then
+		Printer.getInstance().println( " produceResults Stage Entered" );
+end
+
