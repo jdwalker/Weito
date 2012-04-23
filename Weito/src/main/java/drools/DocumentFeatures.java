@@ -3,7 +3,7 @@ package drools;
 import java.util.ArrayList;
 import java.util.List;
 
-import pdfbox.ITextData;
+import pdfbox.TextData;
 import pdfbox.TextMatch;
 
 public class DocumentFeatures {
@@ -174,7 +174,7 @@ public class DocumentFeatures {
 		int value = 0;
 		for(String pattern : patterns) {
 			for(String text : texts) {
-				List<ITextData> matches = TextMatch.match(pattern, text).getResults();
+				List<TextData> matches = TextMatch.match(pattern, text).getResults();
 					value += matches.size();
 			}
 		}
