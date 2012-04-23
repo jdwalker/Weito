@@ -23,7 +23,7 @@ import debug.Printer;
 public class Analysis {
 
 	KnowledgeBase kbase;
-	List<String> keywords;
+	ArrayList<String> keywords;
 	private String fullText;
 
 	public OutputPaper analyse(List<Format> phrases, String inputLocation) throws Exception {
@@ -93,7 +93,7 @@ public class Analysis {
 	}
 
 
-	public Analysis(List<AlgorithmContents> drlLocs, List<String> keywords) throws Exception {
+	public Analysis(List<AlgorithmContents> drlLocs, ArrayList<String> keywords) throws Exception {
 		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
 		this.keywords = keywords;
 

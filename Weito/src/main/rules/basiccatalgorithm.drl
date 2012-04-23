@@ -6,7 +6,7 @@ import java.util.List
 
 
 #declare any global variables here
-global List keywords
+global ArrayList keywords
 global DocumentStatistics stats
 
 rule "Tabulate"

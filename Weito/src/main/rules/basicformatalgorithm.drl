@@ -1,23 +1,23 @@
-#created on: Feb 22, 2012
+ #created on: Feb 22, 2012
 package drools
 
 #list any import classes here.
-import pdfbox.ITextData;
-import pdfbox.IFormatData;
-import pdfbox.FormatStyle;
-import pdfbox.TextMatch;
+import pdfbox.TextData
+import pdfbox.IFormatData
+import pdfbox.FormatStyle
+import pdfbox.TextMatch
 
-import java.util.Set;
-import java.util.HashSet;
-import java.util.AbstractList;
+import java.util.Set
+import java.util.HashSet
 import java.util.ArrayList
+import java.util.List
 
 #declare any global variables here
-global AbstractList keywords
+global ArrayList keywords
 global DocumentStatistics stats
 
 declare Wrapper
-textdata : ITextData @key
+textdata : TextData @key
 end
 
 declare StyledWrapper extends Wrapper
@@ -27,15 +27,6 @@ end
 declare StyledOriginalWrapper extends StyledWrapper
 end
 
-declare RuleInfo
-name : String @key
-data : AbstractList
-end
-
-declare MatchInfo
-type : String
-subtype: String
-end
 
 declare Exclude
 feature : Feature
@@ -50,7 +41,7 @@ end
 
 declare Features
 name: String @key
-list: AbstractList @key
+list: ArrayList @key
 priority : Integer
 end
 
@@ -64,14 +55,15 @@ query "Results"
 $feature : DocumentFeatureResult()
 end
 
-function List<StyledWrapper> makeMatchStyledWrapper(List originalWrappers, List textdatas) {
-	List<StyledWrapper> results = new ArrayList<StyledWrapper>();
-	for(Object o : textdatas) {
-		Wrapper w = new Wrapper( (ITextData) o );
+function ArrayList<StyledWrapper> createMatchStyledWrapper(ArrayList originalWrappers, ArrayList textdatas) {
+	ArrayList<StyledWrapper> results = new ArrayList<StyledWrapper>();
+	for(Object genObject : textdatas) {
+		TextData textdata = (TextData) genObject;
+		Wrapper w = new Wrapper( textdata );
 		StyledOriginalWrapper maxWrapper = null;
 		double overlapRatio = 0;
-		for(Object o : originalWrappers) {
-			StyledOriginalWrapper ow = (StyledOriginalWrapper) o;
+		for(Object object : originalWrappers) {
+			StyledOriginalWrapper ow = (StyledOriginalWrapper) object;
 			if ( doWrappersOverlap(w,ow) ) {
 				double newOverlapRatio = OverlapRatio(w,ow);
 				if(newOverlapRatio > overlapRatio) {
@@ -80,7 +72,9 @@ function List<StyledWrapper> makeMatchStyledWrapper(List originalWrappers, List 
 				}
 			}
 		}
-		results.add( new StyledWrapper(textdata, maxWrapper.getStyle() ) );
+		if(maxWrapper != null) {
+			results.add( new StyledWrapper(textdata, maxWrapper.getStyle() ) );
+		}
 	}
 	return results;
 }
@@ -116,11 +110,11 @@ function Double OverlapRatio(Wrapper mainWrapper, Wrapper overlappingWrapper) {
 }
 
 
-function TextData createTextDataFromFullText(Number $startpos, Number $endpos, DocumentStatistics stats) {
-	int startpos = clampValuestoFullText( $startpos.intValue(), stats );
-	int endpos = clampValuestoFullText( $endpos.intValue(), stats);
+function TextData createTextDataFromFullText(int $startpos, int $endpos, DocumentStatistics stats) {
+	int startpos = clampValuestoFullText( $startpos, stats );
+	int endpos = clampValuestoFullText( $endpos, stats);
 	String text = stats.getFulltext().substring(startpos,endpos);
-	return new TextData(text, startpos, endpos);
+	return new TextData(startpos, endpos, text);
 }
 
 function int clampValuestoFullText(int value, DocumentStatistics stats) {
@@ -129,19 +123,19 @@ function int clampValuestoFullText(int value, DocumentStatistics stats) {
 		if(result < 0) result = 0;
 		return result;
 }
-
+/*
 function TextData createTextData(TextDataMatcher matcher) {
-	return new TextData( matcher.getText(), matcher.getStartpos(), matcher.getEndpos() );
+	return new TextData(matcher.getStartpos(), matcher.getEndpos(), matcher.getText() );
 }
-
+*/
 rule "Wrap Format Data"
 ruleflow-group "genFormat"
 	when
 		$cd : IFormatData($text : text, $sp : startpos, $ep : endpos)
 		not Wrapper(textdata.text == $text )
 	then
-		TextData td = new TextData( $text, $sp, $ep );
-		StyledOriginalWrapper x = new StyledOriginalWrapper( td, new HashSet<RuleInfo>(), $cd.getPrimarystyle() );
+		TextData td = new TextData( $sp, $ep, $text );
+		StyledOriginalWrapper x = new StyledOriginalWrapper( td, $cd.getPrimarystyle() );
 		insert( x );
 end
 
@@ -204,10 +198,197 @@ ruleflow-group "produceResults"
 		$fpt : FeaturesPriorityTracker( $name : name, $priority : currpriority, currpriority <= maxpriority )
 		$fs : Features( name == $name, $list : list, priority == $priority, list.Empty == false )
 	then
-		AbstractList features = new ArrayList();
+		ArrayList features = new ArrayList();
 		for(Object o : $list) {
 			TextData td = (TextData) o;
 			features.add( td.getText() );
 		}
 		insert( new DocumentFeatureResult( $name, features ) );
+end
+
+rule "Title Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw : StyledWrapper(style.fontSizePt == 13 && textdata.text.length > 20)
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 0) );
+end
+
+rule "Title Feature 1"
+ruleflow-group "genFeature"
+
+no-loop
+	when
+		$sw : StyledWrapper(textdata.startpos == 0)
+		not Feature( name == "title", priority == 1 )
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 1 ) );
+end
+
+/*
+rule "Publication Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw: StyledWrapper($txt : textdata.text, style.fontSizePt == 7, textdata.text.length > 70 )
+		//StyledWrapper(this != $sw, textdata.text.equals($txt) )
+	then
+	insert( new Feature( "pubname",$sw.getTextdata(), $sw, 0 ) );
+end
+*/
+
+
+rule "Heading Feature"
+ruleflow-group "genFeature"
+no-loop
+	when	
+		$l : ArrayList() from collect( StyledOriginalWrapper() )
+		$sw : StyledWrapper(  style.fontSizePt in (11.0) || (style.fontSizePt in (7.0) && style.Bold) )
+/*
+				or StyledWrapper() from createMatchStyledWrapper( $l, TextMatch.match("^[A-Z](\\.|:|\\)).+$", stats.fulltext)
+														.orMatch("^[0-9]{1,2}(\\.|:|\\)).+$")
+														.orMatch("^[IVX]+(\\.|:|\\)).+$")
+														.orMatch("(?s).*A(?i)bstract.*")
+														.orMatch("(?s).*R(?i)eferences.*")
+														.orMatch("(?s).*(C|S)(?i)(ummary|onclusion).*")
+														.orMatch("I(?i)ntroduction")
+														.getResults()													
+								)
+*/
+	then
+		insert( new Feature( "heading",$sw.getTextdata(), $sw, 0) );		
+end
+
+
+rule "Headings not adjacent"
+ruleflow-group "genFeature"
+	when
+		$f : Feature( name.equals("heading"), $AstartIndex : textdata.startpos )
+		not Exclude($f == feature);		
+		Feature( name.equals("heading"), this != $f, $BstartIndex : textdata.startpos )
+		eval( Math.abs( stats.getLineIndex( $AstartIndex ) - stats.getLineIndex( $BstartIndex )  ) <= 3 ) //difference between lines one or less
+	then
+		insert ( new Exclude($f) );
+end
+
+rule "Abstract feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		$introf : Feature(textdata.text matches ".*(?i:abstract).*", $startpos : textdata.endpos)
+		$endpos : Integer() from accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), min ($sp) )
+		not Feature(name == "abstract", priority == 0)
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos,stats);
+		insert( featuretd);
+		insert( new Feature( "abstract",featuretd, 0) );
+end
+
+rule "Abstract feature 1"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "abstract", priority == 1)
+		$sw : StyledWrapper( style.italic, textdata.text.length > 150 )
+	then	
+		insert( new Feature( "abstract",$sw.getTextdata(), $sw, 1 ) );
+end
+
+rule "Introduction feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 0)
+		$f : Feature( $startpos : textdata.endpos, textdata.text matches "(?s).*troduction.*")
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos.intValue(), stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 0) );
+end
+
+rule "Introduction feature 1 - with abstract"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 1)
+		$fa : Feature( name == "abstract")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fa.textdata.text), $startpos : min ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 1) );
+end
+
+rule "Introduction feature 2 - without abstract"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "introduction", priority == 2)
+		not Feature( name == "abstract")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : min ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
+		insert( featuretd);
+		insert( new Feature( "introduction",featuretd, 2) );
+end
+
+rule "Conclusion feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "conclusion")
+		$introf : Feature(textdata.text matches ".*(C|S)(?i)(ummary|onclusion).*", $startpos : textdata.endpos)
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos.intValue(), stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 0) );
+end
+
+rule "Conclusion feature 1 - with references"
+ruleflow-group "genMetaFeature"
+no-loop
+	no-loop
+	when
+		not Feature(name == "conclusion", priority == 1)
+		$fr : Feature( name == "references")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fr.textdata.text), $startpos : max ($ep) )
+		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : max ($sp) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 1) );
+end
+
+rule "Conclusion feature 2 - without references"
+ruleflow-group "genMetaFeature"
+no-loop
+	no-loop
+	when
+		not Feature(name == "conclusion", priority == 2)
+		not Feature( name == "references")
+		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : max ($ep) )
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), stats.getFulltext().length() - 1, stats);
+		insert( featuretd);
+		insert( new Feature( "conclusion",featuretd, 2) );
+end
+
+rule "References feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		not Feature(name == "references")
+		$introf : Feature(textdata.text matches "(?s).*(?i)references.*", $startpos : textdata.endpos)
+	then		
+		int endpos = stats.getFulltext().length() - 1;
+		TextData featuretd = createTextDataFromFullText( $startpos, endpos, stats);
+		insert( featuretd);
+		insert( new Feature( "references",featuretd, 1) );
 end

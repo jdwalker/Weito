@@ -1,27 +1,26 @@
 package pdfbox;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
 public class TextMatch {
 
-	List<ITextData> results;
+	ArrayList<TextData> results;
 	String inputstring;
 
 	/**
 	 * @param results
 	 * @param inputstring
 	 */
-	private TextMatch(List<ITextData> results, String inputString) {
+	private TextMatch(ArrayList<TextData> results, String inputString) {
 		this.results = results;
 		this.inputstring = inputString;
 	}
 
 	public static TextMatch match(String regex, String inputString) {;
-		List<ITextData> results = new ArrayList<ITextData>();
+		ArrayList<TextData> results = new ArrayList<TextData>();
 		Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
 		Matcher matcher = pattern.matcher(inputString);
 		while( matcher.find() ) {
@@ -39,7 +38,7 @@ public class TextMatch {
 		return this;
 	}
 
-	public List<ITextData> getResults() {
+	public ArrayList<TextData> getResults() {
 		return results;
 	}
 }

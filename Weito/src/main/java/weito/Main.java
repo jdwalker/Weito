@@ -16,7 +16,7 @@ public class Main {
 	 * @param args
 	 */
 	public static void main(String[] args) {		
-		Debug.setMode(EnumSet.of(DebugMode.FEATURE,DebugMode.DROOLSSTAGEENTER));
+		Debug.setMode(EnumSet.of(DebugMode.FEATURE));
 		
 		List<String> paperLocs = new ArrayList<String>();
 		paperLocs.add("C:/rootfiles/agilestudygeneral/agileconference05/agilestyle-ex2.pdf");
@@ -35,8 +35,8 @@ public class Main {
 		
 		if( Debug.getMode().contains(DebugMode.DROOLSSTAGEENTER) ) drlLocs.add( f.forDRLfile("debug.drl") );
 		
-		List<String> keywords = Arrays.asList( new String[]{"agile","extreme programming","xp","scrum",
-				"dsdm","fdd","software","feature","driven","development","lean","empirical","study","result"} );
+		ArrayList<String> keywords = new ArrayList<String>(Arrays.asList( new String[]{"agile","extreme programming","xp","scrum",
+				"dsdm","fdd","software","feature","driven","development","lean","empirical","study","result"} ));
 		
 		try {
 		Backend.runPapers(paperLocs, drlLocs,keywords);

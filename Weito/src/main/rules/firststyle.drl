@@ -2,6 +2,8 @@
 #Style based on Motivation and Multimodal Interaction in Model-DrivenEducational Game Design
 package drools
 
+import pdfbox.TextData;
+
 rule "Heading pattern for ordered letters (A,B,C..)"
 no-loop
 ruleflow-group "genMatch"

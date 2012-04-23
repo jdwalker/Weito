@@ -21,7 +21,7 @@ import java.util.List;
 
 
 #declare any global variables here
-global List<String> keywords;
+global ArrayList<String> keywords;
 
 declare DocumentTestResults
 	docfeatures : DocumentFeatures

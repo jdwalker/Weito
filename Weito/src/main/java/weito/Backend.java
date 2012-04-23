@@ -14,7 +14,7 @@ import drools.Analysis;
 
 public class Backend {
 
-	public static List<OutputPaper> runPapers(List<String> inputPaperFileLocs, List<AlgorithmContents> drlLocs, List<String> keywords ) throws Exception {
+	public static List<OutputPaper> runPapers(List<String> inputPaperFileLocs, List<AlgorithmContents> drlLocs, ArrayList<String> keywords ) throws Exception {
 		Analysis algorithm = new Analysis(drlLocs, keywords);
 		
 		List<OutputPaper> output = new ArrayList<OutputPaper>();

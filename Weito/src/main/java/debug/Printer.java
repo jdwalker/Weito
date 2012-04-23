@@ -23,7 +23,7 @@ public class Printer {
 		}
 	}
 
-	private Printer() {}
+	protected Printer() {}
 
 	public void startNewPaper() {
 		papercount++;
@@ -79,7 +79,7 @@ public class Printer {
 		}
 	}
 
-	private void printResultFeatures(DocumentFeatureResult result) {
+	protected void printResultFeatures(DocumentFeatureResult result) {
 			println("["+result.getUniquename()+"]");
 			for(String feature : result.getFeatures()) {
 				println("* '"+feature+"'");
@@ -87,7 +87,7 @@ public class Printer {
 	}
 
 	public void printFeatureSpecResults(List<DocumentFeatureResult> results,
-			String inputLocation, List<String> keywords, List<Format> format_results) {
+			String inputLocation, ArrayList<String> keywords, List<Format> format_results) {
 		List<String> desiredUniqueNames = new ArrayList<String>( Arrays.asList(new String[] {"heading","abstract","conclusion"} ) );
 		List<String> actualUniqueNames = new ArrayList<String>();
 		@SuppressWarnings("unused")
@@ -111,6 +111,10 @@ public class Printer {
 		StringBuffer buffer = new StringBuffer(iter.next());
 		while (iter.hasNext()) buffer.append(delimiter).append(iter.next());
 		return buffer.toString();
+	}
+
+	public static void setInstance(Printer instance) {
+		Printer.instance = instance;
 	}
 
 }
