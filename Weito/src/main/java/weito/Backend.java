@@ -14,12 +14,20 @@ import drools.Analysis;
 
 public class Backend {
 
+	/**
+	 * @deprecated Use {@link #runPapers(RunPapersParameter)} instead
+	 */
 	public static List<OutputPaper> runPapers(List<String> inputPaperFileLocs, List<AlgorithmContents> drlLocs, ArrayList<String> keywords ) throws Exception {
-		Analysis algorithm = new Analysis(drlLocs, keywords);
+		return runPapers(new RunPapersParameter(inputPaperFileLocs, drlLocs,
+				keywords));
+	}
+
+	public static List<OutputPaper> runPapers(RunPapersParameter parameterObject ) throws Exception {
+		Analysis algorithm = new Analysis(parameterObject.getDrlLocs(), parameterObject.getKeywords());
 		
 		List<OutputPaper> output = new ArrayList<OutputPaper>();
 		
-		for(String inputLocation : inputPaperFileLocs) {
+		for(String inputLocation : parameterObject.getInputPaperFileLocs()) {
 				OutputPaper paper = runPaper(algorithm, inputLocation);
 				output.add(paper);
 		}

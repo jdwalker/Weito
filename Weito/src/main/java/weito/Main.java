@@ -39,7 +39,7 @@ public class Main {
 				"dsdm","fdd","software","feature","driven","development","lean","empirical","study","result"} ));
 		
 		try {
-		Backend.runPapers(paperLocs, drlLocs,keywords);
+		Backend.runPapers(new RunPapersParameter(paperLocs, drlLocs, keywords));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
