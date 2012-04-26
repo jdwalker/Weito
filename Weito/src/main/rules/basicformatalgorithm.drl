@@ -177,7 +177,6 @@ ruleflow-group "produceResults"
 		accumulate(Features( name.equals($name), $p : priority ), $maxp : max( $p ), $minp : min($p) )
 	then
 		insert( new FeaturesPriorityTracker($name,$maxp.intValue(),$minp.intValue()) );
-		System.out.println($name + " " + $maxp + " " + $minp);
 end
 
 rule "Increment Rule Trackers"

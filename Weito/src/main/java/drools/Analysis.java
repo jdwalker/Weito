@@ -104,10 +104,11 @@ public class Analysis {
 
 		KnowledgeBuilderErrors errors = kbuilder.getErrors();
 		if (errors.size() > 0) {
+			String errorstr = "";
 			for (KnowledgeBuilderError error: errors) {
-				System.err.println(error);
+				errorstr += ("\n"+ error);
 			}
-			throw new IllegalArgumentException("Could not parse knowledge.");
+			throw new IllegalArgumentException("Could not parse knowledge. Following Errors:" + errorstr);
 		}
 		kbase = KnowledgeBaseFactory.newKnowledgeBase();
 		kbase.addKnowledgePackages(kbuilder.getKnowledgePackages());
