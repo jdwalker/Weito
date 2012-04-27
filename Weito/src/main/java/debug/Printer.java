@@ -8,6 +8,7 @@ import java.util.List;
 
 import pdfbox.Format;
 import pdfbox.TextMatch;
+import weito.Keyword;
 import drools.DocumentFeatureResult;
 
 public class Printer {
@@ -41,13 +42,13 @@ public class Printer {
 	}
 
 	public void printKeywordResults(List<DocumentFeatureResult> results,
-			List<String> keywords, String inputLocation) {
+			ArrayList<Keyword> keywords, String inputLocation) {
 		println("Keyword Results: "+inputLocation);
 		String rowHeader = "";
 		for(DocumentFeatureResult result : results) rowHeader += "," + result.getUniquename();
 		println(rowHeader);
 		int[] featuretotals = new int[results.size()];
-		for(String keyword : keywords) {
+		for(Keyword keyword : keywords) {
 			print(keyword+",");
 			for(DocumentFeatureResult result : results) {
 				int total = 0;
@@ -87,7 +88,7 @@ public class Printer {
 	}
 
 	public void printFeatureSpecResults(List<DocumentFeatureResult> results,
-			String inputLocation, ArrayList<String> keywords, List<Format> format_results) {
+			String inputLocation, ArrayList<Keyword> keywords, List<Format> format_results) {
 		List<String> desiredUniqueNames = new ArrayList<String>( Arrays.asList(new String[] {"heading","abstract","conclusion"} ) );
 		List<String> actualUniqueNames = new ArrayList<String>();
 		@SuppressWarnings("unused")

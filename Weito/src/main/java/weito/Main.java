@@ -1,7 +1,6 @@
 package weito;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -35,8 +34,8 @@ public class Main {
 		
 		if( Debug.getMode().contains(DebugMode.DROOLSSTAGEENTER) ) drlLocs.add( f.forDRLfile("debug.drl") );
 		
-		ArrayList<String> keywords = new ArrayList<String>(Arrays.asList( new String[]{"agile","extreme programming","xp","scrum",
-				"dsdm","fdd","software","feature","driven","development","lean","empirical","study","result"} ));
+		ArrayList<Keyword> keywords = new ArrayList<Keyword>();
+		keywords.add(new Keyword("test"));
 		
 		try {
 		Backend.runPapers(new RunPapersParameter(paperLocs, drlLocs, keywords));

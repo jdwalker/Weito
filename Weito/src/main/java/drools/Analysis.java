@@ -15,6 +15,7 @@ import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.rule.QueryResultsRow;
 
 import pdfbox.Format;
+import weito.Keyword;
 import weito.OutputPaper;
 import debug.Debug;
 import debug.Debug.DebugMode;
@@ -23,7 +24,7 @@ import debug.Printer;
 public class Analysis {
 
 	KnowledgeBase kbase;
-	ArrayList<String> keywords;
+	ArrayList<Keyword> keywords;
 	private String fullText;
 
 	public OutputPaper analyse(List<Format> phrases, String inputLocation) throws Exception {
@@ -93,9 +94,9 @@ public class Analysis {
 	}
 
 
-	public Analysis(List<AlgorithmContents> drlLocs, ArrayList<String> keywords) throws Exception {
+	public Analysis(List<AlgorithmContents> drlLocs, ArrayList<Keyword> arrayList) throws Exception {
 		KnowledgeBuilder kbuilder = KnowledgeBuilderFactory.newKnowledgeBuilder();
-		this.keywords = keywords;
+		this.keywords = arrayList;
 
 		for(AlgorithmContents a : drlLocs) {
 			kbuilder.add(a.getResource(), a.getResourcetype());

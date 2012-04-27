@@ -9,17 +9,17 @@ public class RunPapersParameter {
 	private static RunPapersParameter instance = new RunPapersParameter();
 	private List<String> inputPaperFileLocs;
 	private List<AlgorithmContents> drlLocs;
-	private ArrayList<String> keywords;
+	private ArrayList<Keyword> keywords;
 
 	public RunPapersParameter(List<String> inputPaperFileLocs,
-			List<AlgorithmContents> drlLocs, ArrayList<String> keywords) {
+			List<AlgorithmContents> drlLocs, ArrayList<Keyword> keywords) {
 		this.inputPaperFileLocs = inputPaperFileLocs;
 		this.drlLocs = drlLocs;
 		this.keywords = keywords;
 	}
 
 	protected RunPapersParameter() {
-		this(new ArrayList<String>(), new ArrayList<AlgorithmContents>(), new ArrayList<String>());
+		this(new ArrayList<String>(), new ArrayList<AlgorithmContents>(), new ArrayList<Keyword>());
 	}
 
 
@@ -32,7 +32,7 @@ public class RunPapersParameter {
 		return drlLocs;
 	}
 
-	public ArrayList<String> getKeywords() {
+	public ArrayList<Keyword> getKeywords() {
 		return keywords;
 	}
 

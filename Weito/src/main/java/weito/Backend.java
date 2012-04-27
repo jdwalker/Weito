@@ -17,7 +17,7 @@ public class Backend {
 	/**
 	 * @deprecated Use {@link #runPapers(RunPapersParameter)} instead
 	 */
-	public static List<OutputPaper> runPapers(List<String> inputPaperFileLocs, List<AlgorithmContents> drlLocs, ArrayList<String> keywords ) throws Exception {
+	public static List<OutputPaper> runPapers(List<String> inputPaperFileLocs, List<AlgorithmContents> drlLocs, ArrayList<Keyword> keywords ) throws Exception {
 		return runPapers(new RunPapersParameter(inputPaperFileLocs, drlLocs,
 				keywords));
 	}
