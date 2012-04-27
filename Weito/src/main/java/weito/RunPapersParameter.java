@@ -39,4 +39,10 @@ public class RunPapersParameter {
 	public static RunPapersParameter getInstance() {
 		return instance;
 	}
+
+	public void clearAllTemporaries() {
+		inputPaperFileLocs.clear();
+		drlLocs.clear();
+		keywords.clear();
+	}
 }
