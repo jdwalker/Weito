@@ -1,0 +1,97 @@
+#created on: Feb 23, 2012
+#Style based on Agile Conference 2005
+package drools
+
+global DocumentStatistics stats
+
+rule "Heading Feature"
+ruleflow-group "genFeature"
+no-loop
+	when	
+		$l : ArrayList() from collect( StyledOriginalWrapper() )
+		$sw : StyledWrapper(  style.fontSizePt in (10.0) && style.Bold)
+/*
+				or StyledWrapper() from createMatchStyledWrapper( $l, TextMatch.match("^[A-Z](\\.|:|\\)).+$", stats.fulltext)
+														.orMatch("^[0-9]{1,2}(\\.|:|\\)).+$")
+														.orMatch("^[IVX]+(\\.|:|\\)).+$")
+														.orMatch("(?s).*A(?i)bstract.*")
+														.orMatch("(?s).*R(?i)eferences.*")
+														.orMatch("(?s).*(C|S)(?i)(ummary|onclusion).*")
+														.orMatch("I(?i)ntroduction")
+														.getResults()													
+								)
+*/
+	then
+		insert( new Feature( "heading",$sw.getTextdata(), $sw, 0) );		
+end
+
+
+rule "Headings not adjacent"
+ruleflow-group "genFeature"
+	when
+		$f : Feature( name.equals("heading"), $AstartIndex : textdata.startpos )
+		not Exclude($f == feature);		
+		Feature( name.equals("heading"), this != $f, $BstartIndex : textdata.startpos )
+		eval( Math.abs( stats.getLineIndex( $AstartIndex ) - stats.getLineIndex( $BstartIndex )  ) <= 3 ) //difference between lines one or less
+	then
+		insert ( new Exclude($f) );
+end
+
+
+rule "Abstract feature"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		$introf : Feature(textdata.text matches ".*(?i:abstract).*", $startpos : textdata.endpos)
+		$endpos : Integer() from accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), min ($sp) )
+		not Feature(name == "abstract", priority == 0)
+	then
+		TextData featuretd = createTextDataFromFullText( $startpos, $endpos,stats);
+		insert( featuretd);
+		insert( new Feature( "abstract",featuretd, 0) );
+end
+
+rule "Abstract feature 1"
+ruleflow-group "genMetaFeature"
+no-loop
+	when
+		$sw : StyledWrapper( style.fontSizePt in (12.0) )
+		not Feature(name == "abstract", priority == 1)
+	then
+		insert( new Feature( "abstract",$sw.getTextdata(), $sw, 1 ) );
+end
+
+/*
+rule "Title Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw : StyledWrapper(style.fontSizePt == 13 && textdata.text.length > 20)
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 0) );
+end
+
+rule "Title Feature 1"
+ruleflow-group "genFeature"
+
+no-loop
+	when
+		$sw : StyledWrapper(textdata.startpos == 0)
+		not Feature( name == "title", priority == 1 )
+		not Feature( wrapper == $sw )
+	then
+		insert( new Feature( "title",$sw.getTextdata(), $sw, 1 ) );
+end
+
+
+rule "Publication Feature"
+ruleflow-group "genFeature"
+no-loop
+	when
+		$sw: StyledWrapper($txt : textdata.text, style.fontSizePt == 7, textdata.text.length > 70 )
+		//StyledWrapper(this != $sw, textdata.text.equals($txt) )
+	then
+	insert( new Feature( "pubname",$sw.getTextdata(), $sw, 0 ) );
+end
+*/
