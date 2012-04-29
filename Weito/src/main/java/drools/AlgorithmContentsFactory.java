@@ -1,5 +1,7 @@
 package drools;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -22,7 +24,7 @@ public class AlgorithmContentsFactory {
 	   }
 	
 	public AlgorithmContents forDRLfile(String drlfileloc) {
-		return new AlgorithmContents(  ResourceFactory.newClassPathResource(drlfileloc), ResourceType.DRL);
+		return new AlgorithmContents(  ResourceFactory.newFileResource(new File(drlfileloc)), ResourceType.DRL);
 	}
 	
 	public AlgorithmContents forRFfile(String rffileloc) {
@@ -38,8 +40,8 @@ public class AlgorithmContentsFactory {
 	}
 
 	private AlgorithmContents forDRTfileError(String drtfileloc,String xlsfilesloc) throws IOException {
-		InputStream drtStream = ResourceFactory.newClassPathResource( drtfileloc ).getInputStream();
-		InputStream xlsStream = ResourceFactory.newClassPathResource( xlsfilesloc ).getInputStream(); 
+		InputStream drtStream = ResourceFactory.newFileResource(new File( drtfileloc) ).getInputStream();
+		InputStream xlsStream = ResourceFactory.newFileResource(new File( xlsfilesloc) ).getInputStream(); 
 		String drl = converter.compile(xlsStream, drtStream, 2, 2); //Data always starts at B2;
 		return new AlgorithmContents( new ByteArrayResource( drl.getBytes() ) , ResourceType.DRL);
 	}	

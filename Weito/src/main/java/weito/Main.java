@@ -25,11 +25,11 @@ public class Main {
 		
 		List<AlgorithmContents> drlLocs = new ArrayList<AlgorithmContents>();
 		AlgorithmContentsFactory f = new AlgorithmContentsFactory();
-		drlLocs.add( f.forDRLfile("basicformatalgorithm.drl") );
+		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/basicformatalgorithm.drl") );
 		drlLocs.add( f.forRFfile( "formatalgorithm.rf" ) );
-		drlLocs.add( f.forDRLfile("conferencestyle.drl") );
+		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/Styles/conferencestyle.drl") );
 		
-		drlLocs.add( f.forDRLfile("basiccatalgorithm.drl") );
+		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/basiccatalgorithm.drl") );
 		drlLocs.add( f.forRFfile( "categoryalgorithm.rf" ) );
 		
 		if( Debug.getMode().contains(DebugMode.DROOLSSTAGEENTER) ) drlLocs.add( f.forDRLfile("debug.drl") );
