@@ -113,6 +113,9 @@ function Double OverlapRatio(Wrapper mainWrapper, Wrapper overlappingWrapper) {
 function TextData createTextDataFromFullText(int $startpos, int $endpos, DocumentStatistics stats) {
 	int startpos = clampValuestoFullText( $startpos, stats );
 	int endpos = clampValuestoFullText( $endpos, stats);
+	if(startpos > endpos) {
+		endpos = stats.getFulltext().length() - 1;
+	}
 	String text = stats.getFulltext().substring(startpos,endpos);
 	return new TextData(startpos, endpos, text);
 }
