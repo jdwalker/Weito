@@ -1,7 +1,6 @@
 package drools;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -44,5 +43,9 @@ public class AlgorithmContentsFactory {
 		InputStream xlsStream = ResourceFactory.newFileResource(new File( xlsfilesloc) ).getInputStream(); 
 		String drl = converter.compile(xlsStream, drtStream, 2, 2); //Data always starts at B2;
 		return new AlgorithmContents( new ByteArrayResource( drl.getBytes() ) , ResourceType.DRL);
+	}
+
+	public AlgorithmContents forDRLlocalfile(String string) {
+		return new AlgorithmContents(ResourceFactory.newClassPathResource(string), ResourceType.DRL);
 	}	
 }
