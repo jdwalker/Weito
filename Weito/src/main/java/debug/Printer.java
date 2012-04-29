@@ -91,15 +91,14 @@ public class Printer {
 			String inputLocation, ArrayList<Keyword> keywords, List<Format> format_results) {
 		List<String> desiredUniqueNames = new ArrayList<String>( Arrays.asList(new String[] {"heading","abstract","conclusion"} ) );
 		List<String> actualUniqueNames = new ArrayList<String>();
-		@SuppressWarnings("unused")
 		String title = "";
 		for(DocumentFeatureResult result : results) {
 			actualUniqueNames.add(result.getUniquename());
 			if(result.getUniquename() == "title") title = result.getFeatures().get(0);
 		}
 		if(actualUniqueNames.containsAll(desiredUniqueNames)) {
-			//println("==Valid file"+papercount+" : "+inputLocation+", Publication title: "+title+"==");
-			//printKeywordResults(results, keywords, inputLocation);
+			println("==Valid file"+papercount+" : "+inputLocation+", Publication title: "+title+"==");
+			printKeywordResults(results, keywords, inputLocation);
 		} else {
 			println("==Not Valid file"+papercount+" : "+inputLocation+"==");
 			printFeatureResults(results, inputLocation);
@@ -116,6 +115,10 @@ public class Printer {
 
 	public static void setInstance(Printer instance) {
 		Printer.instance = instance;
+	}
+	
+	public void clear() {
+		
 	}
 
 }
