@@ -131,6 +131,22 @@ function TextData createTextData(TextDataMatcher matcher) {
 	return new TextData(matcher.getStartpos(), matcher.getEndpos(), matcher.getText() );
 }
 */
+
+function int calculateEndOfSectionFromHeading(Feature f,List headings,DocumentStatistics stats) {
+	int endpos = f.getTextdata().getEndpos();
+	int endPosOfSection = stats.getFulltext().length() -1;
+	for(Object o : headings) {
+		Feature heading = (Feature) o;
+		int potentialendpos = heading.getTextdata().getStartpos() -1;
+		if(potentialendpos > endpos) {
+			if(potentialendpos < endPosOfSection) {
+				endPosOfSection = potentialendpos;			
+			}
+		}
+	}
+	return endPosOfSection;
+}
+
 rule "Wrap Format Data"
 ruleflow-group "genFormat"
 	when
@@ -214,71 +230,62 @@ ruleflow-group "genMetaFeature"
 no-loop
 	when
 		not Feature(name == "introduction", priority == 0)
-		$f : Feature( $startpos : textdata.endpos, textdata.text matches "(?s).*troduction.*")
-		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+		accumulate( Feature( name == "heading",  textdata.text matches "(.|\n|\r)*?troduction(.|\n|\r)*?", $sp : textdata.startpos ), $startpos : min ($sp) )
+		$f : Feature( name == "heading", textdata.startpos == $startpos.intValue() )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
 	then
-		TextData featuretd = createTextDataFromFullText( $startpos, $endpos.intValue(), stats);
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
 		insert( new Feature( "introduction",featuretd, 0) );
 end
 
-rule "Introduction feature 1 - with abstract"
+
+rule "Introduction feature 1"
 ruleflow-group "genMetaFeature"
 no-loop
 	when
 		not Feature(name == "introduction", priority == 1)
-		$fa : Feature( name == "abstract")
-		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fa.textdata.text), $startpos : min ($ep) )
-		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : min ($sp) )
+		accumulate( Feature( name == "heading",  $sp : textdata.startpos ), $startpos : min ($sp) )
+		$f : Feature( name == "heading", textdata.startpos == $startpos.intValue() )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
 	then
-		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
 		insert( new Feature( "introduction",featuretd, 1) );
+	
 end
 
-rule "Introduction feature 2 - without abstract"
-ruleflow-group "genMetaFeature"
-no-loop
-	when
-		not Feature(name == "introduction", priority == 2)
-		not Feature( name == "abstract")
-		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : min ($ep) )
-		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : min ($sp) )
-	then
-		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
-		insert( featuretd);
-		insert( new Feature( "introduction",featuretd, 2) );
-end
 
 rule "Conclusion feature"
 ruleflow-group "genMetaFeature"
 no-loop
 	when
-		not Feature(name == "conclusion")
-		$introf : Feature(textdata.text matches ".*(C|S)(?i)(ummary|onclusion).*", $startpos : textdata.endpos)
-		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos ), $endpos : min ($sp) )
+		not Feature(name == "conclusion", priority == 0)
+		$f : Feature( name == "heading",  textdata.text matches "(.|\n|\r)*?(?i)(conclusion|Summary)(.|\n|\r)*?", $sp : textdata.startpos )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
 	then
-		TextData featuretd = createTextDataFromFullText( $startpos, $endpos.intValue(), stats);
-		System.out.println("Conclusion feature "+$startpos+" "+$endpos.intValue());
-		System.out.println(featuretd.getText());
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
 		insert( new Feature( "conclusion",featuretd, 0) );
+
 end
 
 
 rule "Conclusion feature 1 - with references"
 ruleflow-group "genMetaFeature"
 no-loop
-	no-loop
 	when
 		not Feature(name == "conclusion", priority == 1)
 		$fr : Feature( name == "references")
-		accumulate( Feature( name == "heading", $ep : textdata.startpos, textdata.text != $fr.textdata.text), $startpos : max ($ep) )
-		accumulate( Feature( name == "heading", $sp : textdata.startpos, $sp > $startpos.intValue() ), $endpos : max ($sp) )
+		accumulate( Feature( name == "heading",  textdata.text not matches "(.|\n|\r)*?(?i)references(.|\n|\r)*", $sp : textdata.startpos ), $startpos : max ($sp) )
+		$f : Feature( name == "heading", textdata.startpos == $startpos.intValue() )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
 	then
-		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), $endpos.intValue(), stats);
-		System.out.println("Conclusion feature 1 - with references: "+$startpos.intValue()+" "+$endpos.intValue());
-		System.out.println(featuretd.getText());
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
 		insert( new Feature( "conclusion",featuretd, 1) );
 end
@@ -287,16 +294,16 @@ end
 rule "Conclusion feature 2 - without references"
 ruleflow-group "genMetaFeature"
 no-loop
-	no-loop
 	when
 		not Feature(name == "conclusion", priority == 2)
 		not Feature( name == "references")
-		accumulate( Feature( name == "heading", $ep : textdata.startpos), $startpos : max ($ep) )
+		$fr : Feature( name == "references")
+		accumulate( Feature( name == "heading", $sp : textdata.startpos ), $startpos : max ($sp) )
+		$f : Feature( name == "heading", textdata.startpos == $startpos.intValue() )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
 	then
-		int endFullText = stats.getFulltext().length() - 1;
-		TextData featuretd = createTextDataFromFullText( $startpos.intValue(), endFullText, stats);
-		System.out.println("Conclusion feature 2 - without references: "+$startpos.intValue()+" "+endFullText);
-		System.out.println(featuretd.getText());
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
 		insert( new Feature( "conclusion",featuretd, 2) );
 end
@@ -305,11 +312,13 @@ rule "References feature"
 ruleflow-group "genMetaFeature"
 no-loop
 	when
-		not Feature(name == "references")
-		$introf : Feature(textdata.text matches "(?s).*(?i)references.*", $startpos : textdata.endpos)
-	then		
-		int endpos = stats.getFulltext().length() - 1;
-		TextData featuretd = createTextDataFromFullText( $startpos, endpos, stats);
+		not Feature(name == "references", priority == 0)
+		accumulate( Feature( name == "heading",  textdata.text matches "(.|\n|\r)*?(?i)references(.|\n|\r)*", $sp : textdata.startpos ), $startpos : max ($sp) )
+		$f : Feature( name == "heading", textdata.startpos == $startpos.intValue() )
+		$headings : ArrayList() from collect (Feature(name == "heading"))
+	then
+		int endpos = calculateEndOfSectionFromHeading($f,$headings,stats);
+		TextData featuretd = createTextDataFromFullText( $f.getTextdata().getStartpos(), endpos, stats);
 		insert( featuretd);
-		insert( new Feature( "references",featuretd, 1) );
+		insert( new Feature( "references",featuretd, 0) );
 end

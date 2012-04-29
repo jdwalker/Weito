@@ -18,18 +18,21 @@ public class Main {
 		Debug.setMode(EnumSet.of(DebugMode.FEATURE));
 		
 		List<String> paperLocs = new ArrayList<String>();
+		paperLocs.add("C:/rootfiles/agilestudygeneral/agileconference05/agilestyle.pdf");
 		paperLocs.add("C:/rootfiles/agilestudygeneral/agileconference05/agilestyle-ex2.pdf");
+		paperLocs.add("C:/rootfiles/agilestudygeneral/agileconference05/agilestyle-ex3.pdf");
+		paperLocs.add("C:/rootfiles/agilestudygeneral/agileconference05/agilestyle-ex4.pdf");
 		//FileAccess fa = new FileAccess("pdf", true);
 		//paperLocs.addAll( fa.getFilesFromDir("C:/rootfiles/agilestudygeneral/agileconference05") );
 		//System.out.println("No of files: "+result.size());
 		
 		List<AlgorithmContents> drlLocs = new ArrayList<AlgorithmContents>();
 		AlgorithmContentsFactory f = new AlgorithmContentsFactory();
-		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/basicformatalgorithm.drl") );
+		drlLocs.add( f.forDRLlocalfile("basicformatalgorithm.drl") );
 		drlLocs.add( f.forRFfile( "formatalgorithm.rf" ) );
-		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/Styles/conferencestyle.drl") );
+		drlLocs.add( f.forDRLlocalfile("conferencestyle.drl") );
 		
-		drlLocs.add( f.forDRLfile("C:/rootfiles/drl/basiccatalgorithm.drl") );
+		drlLocs.add( f.forDRLlocalfile("basiccatalgorithm.drl") );
 		drlLocs.add( f.forRFfile( "categoryalgorithm.rf" ) );
 		
 		if( Debug.getMode().contains(DebugMode.DROOLSSTAGEENTER) ) drlLocs.add( f.forDRLfile("debug.drl") );
